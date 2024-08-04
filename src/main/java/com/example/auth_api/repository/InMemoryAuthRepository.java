@@ -13,19 +13,6 @@ public class InMemoryAuthRepository implements AuthRepository{
 
     private final List<User> users = new ArrayList<>();
 
-    @PostConstruct
-    public void loadUser(){
-        User user = new User();
-        user.setName("Nikodim");
-        user.setPassword("12345");
-        user.setId(13L);
-        User user2 = new User();
-        user2.setName("Serega");
-        user2.setPassword("758321");
-        user2.setId(1L);
-        users.add(user);
-        users.add(user2);
-    }
 
     @Override
     public List<User> findAll() {
