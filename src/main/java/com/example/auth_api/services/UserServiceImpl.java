@@ -6,12 +6,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+
+    public boolean isLogInSuccess(String username, String password) {
+        if (Objects.isNull(userRepository.findByName(username)
+                .filter(user -> user.getPassword().equals(password))
+                .orElse(null))) {
+            return false;
+        }
+        return true;
+    }
 
     @Override
     public List<User> findAll() {

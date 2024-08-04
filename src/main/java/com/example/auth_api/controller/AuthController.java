@@ -1,5 +1,6 @@
 package com.example.auth_api.controller;
 
+import com.example.auth_api.models.AuthStatusResponse;
 import com.example.auth_api.models.User;
 import com.example.auth_api.services.UserService;
 import jakarta.annotation.PostConstruct;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +24,24 @@ public class AuthController {
     @GetMapping("/")
     public String home(){
         return "index.html";
+    }
+
+    public AuthStatusResponse logIn(String username, String password) {
+        AuthStatusResponse response;
+        if (userService.isLogInSuccess(username, password)) {
+            response = AuthStatusResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .state("User has been authorized")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        } else {
+            response = AuthStatusResponse.builder()
+                    .code(HttpStatus.FORBIDDEN.value())
+                    .state("Incorrect user name or password is specified")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        }
+        return response;
     }
 
     @GetMapping("/all-users")
