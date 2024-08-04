@@ -2,10 +2,25 @@ server:
   port: 8080
 
 spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
   security:
     user:
       name: admin
       password: admin
       enable-csrf: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/usersdb
+    username: root
+    password: Minecraft123
+    platform: postgres
+    driverClassName: org.postgresql.Driver
+  jpa:
+    database: POSTGRESQL
+    show-sql: true
+    hibernate:
+      ddl-auto: create-drop
 
 logging.level.org.springframework.web: INFO

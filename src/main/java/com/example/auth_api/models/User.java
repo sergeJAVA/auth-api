@@ -1,15 +1,26 @@
 package com.example.auth_api.models;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import javax.persistence.Entity;
+import jakarta.persistence.*;
+import lombok.*;
 
-@Data
+@Builder
 @Entity
+@AllArgsConstructor
 @NoArgsConstructor
+@Table(name = "users")
+@Getter
+@Setter
 public class User {
-    private String name;
-    private String password;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id")
     private Long id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "password")
+    private String password;
+
 
 }
