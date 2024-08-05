@@ -7,7 +7,6 @@ import java.util.List;
 public interface UserService {
     List<User> findAll();
 
-    boolean isLogInSuccess(String username, String password);
 
     User findById(Long id);
 
