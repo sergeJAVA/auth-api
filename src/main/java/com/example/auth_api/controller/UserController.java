@@ -55,7 +55,7 @@ public class UserController {
         serega.setPassword("12345");
 
         nikodim.setName("Nikodim");
-        nikodim.setPassword("315z");
+        nikodim.setPassword("123876");
 
         users.add(nikodim);
         users.add(serega);

@@ -14,7 +14,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/usersdb
     username: root
-    password: Minecraft123
+    password: password
     platform: postgres
     driverClassName: org.postgresql.Driver
   jpa:
