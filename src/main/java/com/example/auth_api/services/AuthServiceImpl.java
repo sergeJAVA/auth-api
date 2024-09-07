@@ -2,27 +2,26 @@ package com.example.auth_api.services;
 
 import com.example.auth_api.models.AuthStatusResponse;
 import com.example.auth_api.models.User;
-import com.example.auth_api.repository.UserRepository;
+import com.example.auth_api.services.feign.UserServiceApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements AuthService{
+public class AuthServiceImpl implements AuthService {
 
-    private final UserRepository userRepository;
+    private final UserServiceApi userServiceApi;
 
     private boolean isLogInSuccess(String username, String password) {
-        if (Objects.isNull(userRepository.findByName(username)
+        if (userServiceApi.findByName(username)
                 .filter(user -> user.getPassword().equals(password))
-                .orElse(null))) {
-            return false;
+                .isPresent()) {
+            return true;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -36,7 +35,7 @@ public class AuthServiceImpl implements AuthService{
                     .timestamp(LocalDateTime.now())
                     .build();
         } else {
-            userRepository.save(User.builder()
+            userServiceApi.createUser(User.builder()
                     .name(username)
                     .password(password)
                     .build());
@@ -71,6 +70,6 @@ public class AuthServiceImpl implements AuthService{
     }
 
     private boolean isUserExist(String username) {
-        return userRepository.findByName(username).isPresent();
+        return userServiceApi.findByName(username).isPresent();
     }
 }
