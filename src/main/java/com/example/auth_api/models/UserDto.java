@@ -7,8 +7,8 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-public class User {
-    private Long id;
+@ToString
+public class UserDto {
     private String name;
     private String password;
 }

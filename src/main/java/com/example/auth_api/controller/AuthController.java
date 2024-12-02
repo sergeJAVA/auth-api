@@ -3,7 +3,9 @@ package com.example.auth_api.controller;
 import com.example.auth_api.models.AuthStatusResponse;
 import com.example.auth_api.services.AuthService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 
 
@@ -12,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-
-
     @GetMapping("/login")
     public AuthStatusResponse logIn(@RequestParam String username, @RequestParam String password) {
         return authService.logIn(username, password);
@@ -21,7 +21,6 @@ public class AuthController {
 
     @GetMapping("/register")
     public AuthStatusResponse signUp(@RequestParam String username, @RequestParam String password) {
-
         return authService.userRegistration(username, password);
     }
 

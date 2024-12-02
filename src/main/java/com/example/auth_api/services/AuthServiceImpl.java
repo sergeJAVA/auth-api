@@ -1,9 +1,10 @@
 package com.example.auth_api.services;
 
 import com.example.auth_api.models.AuthStatusResponse;
-import com.example.auth_api.models.User;
+import com.example.auth_api.models.UserDto;
 import com.example.auth_api.services.feign.UserServiceApi;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class AuthServiceImpl implements AuthService {
         return false;
     }
 
+    @SneakyThrows
     @Override
     public AuthStatusResponse userRegistration(String username, String password) {
         AuthStatusResponse response;
@@ -35,7 +37,7 @@ public class AuthServiceImpl implements AuthService {
                     .timestamp(LocalDateTime.now())
                     .build();
         } else {
-            userServiceApi.createUser(User.builder()
+            userServiceApi.createUser(UserDto.builder()
                     .name(username)
                     .password(password)
                     .build());
