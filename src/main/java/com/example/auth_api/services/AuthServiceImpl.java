@@ -6,6 +6,8 @@ import com.example.auth_api.services.feign.UserServiceApi;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,14 +17,12 @@ import java.time.LocalDateTime;
 public class AuthServiceImpl implements AuthService {
 
     private final UserServiceApi userServiceApi;
+    private final PasswordEncoder passwordEncoder;
 
     private boolean isLogInSuccess(String username, String password) {
-        if (userServiceApi.findByName(username)
-                .filter(user -> user.getPassword().equals(password))
-                .isPresent()) {
-            return true;
-        }
-        return false;
+        UserDto userDto = userServiceApi.findByName(username).orElseThrow(
+                () -> new UsernameNotFoundException("User not found"));
+        return passwordEncoder.matches(password, userDto.getPassword());
     }
 
     @SneakyThrows
@@ -39,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
         } else {
             userServiceApi.createUser(UserDto.builder()
                     .name(username)
-                    .password(password)
+                    .password(passwordEncoder.encode(password))
                     .build());
 
             response = AuthStatusResponse.builder()

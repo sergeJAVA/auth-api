@@ -21,6 +21,4 @@ public interface UserServiceApi {
     @PostMapping("/create")
     UserDto createUser(@RequestBody UserDto userDto);
 
-
-
 }
