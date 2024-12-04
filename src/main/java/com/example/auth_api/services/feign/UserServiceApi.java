@@ -21,9 +21,6 @@ public interface UserServiceApi {
     @PostMapping("/create")
     UserDto createUser(@RequestBody UserDto userDto);
 
-    @GetMapping("findPassword/{username}")
-    String getPassword(@PathVariable String username);
-
 
 
 }
