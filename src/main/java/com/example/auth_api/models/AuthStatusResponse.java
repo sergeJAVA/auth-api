@@ -14,4 +14,5 @@ public class AuthStatusResponse {
     private String state;
     private Integer code;
     private LocalDateTime timestamp;
+    private String token;
 }

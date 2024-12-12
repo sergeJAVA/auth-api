@@ -6,6 +6,7 @@ import com.example.auth_api.services.feign.UserServiceApi;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserServiceApi userServiceApi;
     private final PasswordEncoder passwordEncoder;
+    private final JWTService jwtService;
 
     private boolean isLogInSuccess(String username, String password) {
         UserDto userDto = userServiceApi.findByName(username).orElseThrow(
@@ -60,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
                     .code(HttpStatus.OK.value())
                     .state("User has been authorized")
                     .timestamp(LocalDateTime.now())
+                    .token(jwtService.generateToken(username))
                     .build();
         } else {
             response = AuthStatusResponse.builder()
