@@ -2,11 +2,18 @@ server:
   port: 8081
 
 spring:
+  application:
+    name:
+      auth-service
   security:
     user:
       name: admin
       password: admin
       enable-csrf: false
+
+jwt:
+  secret: secretkeyPasswordForAuth12312312312313213123123sdfsdf
+  life-time: 1800000
 
 feign:
   user-service:
