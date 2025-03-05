@@ -2,6 +2,7 @@ package com.example.auth_api.services;
 
 import com.example.auth_api.constants.RoleType;
 import com.example.auth_api.models.AuthStatusResponse;
+import com.example.auth_api.models.RegistrationRequest;
 import com.example.auth_api.models.UserDto;
 import com.example.auth_api.services.feign.UserServiceApi;
 import com.example.auth_api.services.security.JWTService;
@@ -12,10 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,25 +36,23 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
 
-    private boolean isLogInSuccess(String password, UserDto userDto) {
-        return passwordEncoder.matches(password, userDto.getPassword());
-    }
+
 
     @SneakyThrows
     @Override
-    public AuthStatusResponse userRegistration(String username, String password) {
+    public AuthStatusResponse userRegistration(RegistrationRequest request) {
         AuthStatusResponse response;
 
-        if (isUserExist(username)) {
+        if (isUserExist(request.getUsername())) {
             response = AuthStatusResponse.builder()
-                    .code(HttpStatus.OK.value())
+                    .code(HttpStatus.BAD_REQUEST.value())
                     .state("User with this username already exist")
                     .timestamp(LocalDateTime.now())
                     .build();
         } else {
             userServiceApi.createUser(UserDto.builder()
-                    .name(username)
-                    .password(passwordEncoder.encode(password))
+                    .name(request.getUsername())
+                    .password(passwordEncoder.encode(request.getPassword()))
                     .role(RoleType.USER.value())
                     .build());
 
@@ -67,34 +68,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthStatusResponse logIn(String username, String password) {
-        AuthStatusResponse response;
+        Authentication authentication = authenticationProvider.authenticate(
+                new UsernamePasswordAuthenticationToken(username, password)
+        );
 
-        UserDto userDto = userServiceApi.findByName(username).orElseThrow(
-                () -> new UsernameNotFoundException("User not found"));
-        if (isLogInSuccess(password, userDto)) {
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            response = AuthStatusResponse.builder()
-                    .code(HttpStatus.OK.value())
-                    .state("User has been authorized")
-                    .timestamp(LocalDateTime.now())
-                    .token(getToken(username, password, userDto))
-                    .build();
-        } else {
-            response = AuthStatusResponse.builder()
-                    .code(HttpStatus.FORBIDDEN.value())
-                    .state("Incorrect user name or password is specified")
-                    .timestamp(LocalDateTime.now())
-                    .build();
-        }
-        return response;
+        String token = jwtService.generateJwtToken(userDetails);
+
+        return AuthStatusResponse.builder()
+                .code(HttpStatus.OK.value())
+                .state("User has been authorized")
+                .timestamp(LocalDateTime.now())
+                .token(token)
+                .build();
     }
 
-    private String getToken(String username, String password, UserDto userDto) {
-        return jwtService.generateJwtToken(new User(
-                username,
-                password,
-                List.of(new SimpleGrantedAuthority(userDto.getRole()))));
-    }
 
     private boolean isUserExist(String username) {
         return userServiceApi.findByName(username).isPresent();
