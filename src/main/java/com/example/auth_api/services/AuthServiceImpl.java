@@ -14,17 +14,11 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @Slf4j
@@ -68,20 +62,31 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthStatusResponse logIn(String username, String password) {
-        Authentication authentication = authenticationProvider.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
-        );
+        try {
+            Authentication authentication = authenticationProvider.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        String token = jwtService.generateJwtToken(userDetails);
+            String token = jwtService.generateJwtToken(userDetails);
 
-        return AuthStatusResponse.builder()
-                .code(HttpStatus.OK.value())
-                .state("User has been authorized")
-                .timestamp(LocalDateTime.now())
-                .token(token)
-                .build();
+
+            return AuthStatusResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .state("User has been authorized")
+                    .timestamp(LocalDateTime.now())
+                    .token(token)
+                    .build();
+
+        } catch (AuthenticationException e) {
+            log.error("Authentication failed for user: {}", username, e);
+            return AuthStatusResponse.builder()
+                    .code(HttpStatus.FORBIDDEN.value())
+                    .state("Incorrect username or password is specified")
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        }
     }
 
 

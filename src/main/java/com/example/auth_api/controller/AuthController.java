@@ -10,10 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 
 @Slf4j
 @RestController
@@ -31,20 +29,15 @@ public class AuthController {
 
 
     private ResponseEntity<AuthStatusResponse> logIn(@RequestParam String username, @RequestParam String password) {
-        try {
-            AuthStatusResponse response = authService.logIn(username, password);
+
+        AuthStatusResponse response = authService.logIn(username, password);
+
+        if (response.getCode() == HttpStatus.OK.value()) {
             HttpHeaders headers = new HttpHeaders();
             headers.add("Bearer Token", response.getToken());
             return new ResponseEntity<>(response, headers, HttpStatus.OK);
-        } catch (AuthenticationException e) {
-            log.error("Authentication failed for user: {}", username, e);
-            AuthStatusResponse errorResponse = AuthStatusResponse.builder()
-                    .code(HttpStatus.FORBIDDEN.value())
-                    .state("Incorrect username or password is specified")
-                    .timestamp(LocalDateTime.now())
-                    .build();
-            return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
         }
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
 
