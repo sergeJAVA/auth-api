@@ -69,7 +69,9 @@ public class AuthServiceImpl implements AuthService {
 
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-            String token = jwtService.generateJwtToken(userDetails);
+            Long userId = userServiceApi.findByName(username).get().getId();
+
+            String token = jwtService.generateJwtToken(userDetails, userId);
 
 
             return AuthStatusResponse.builder()

@@ -27,13 +27,14 @@ public class JWTService {
     @Value("${jwt.life-time}")
     private Long lifeTime;
 
-    public String generateJwtToken(UserDetails userDetails) {
+    public String generateJwtToken(UserDetails userDetails, Long userId) {
         Map<String, Object> claims = new HashMap<>();
 
         claims.put("username", userDetails.getUsername());
         claims.put("roles", userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toSet()));
+        claims.put("userId", userId);
         return Jwts.builder()
                 .claims(claims)
                 .subject(userDetails.getUsername())
