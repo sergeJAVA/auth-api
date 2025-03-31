@@ -92,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
-    private boolean isUserExist(String username) {
+    boolean isUserExist(String username) {
         return userServiceApi.findByName(username).isPresent();
     }
 }
