@@ -21,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -57,7 +58,7 @@ class AuthServiceImplTest {
                 .id(1L)
                 .name("testUser")
                 .password("encodedPassword")
-                .role(RoleType.USER.value())
+                .roles(Set.of(RoleType.USER.value()))
                 .build();
 
         userDetails = mock(UserDetails.class);

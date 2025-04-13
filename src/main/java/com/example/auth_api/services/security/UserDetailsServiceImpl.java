@@ -10,6 +10,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +26,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         new User(
                                 userDto.getName(),
                                 userDto.getPassword(),
-                                List.of(new SimpleGrantedAuthority(userDto.getRole()))
+                                userDto.getRoles().stream()
+                                        .map(SimpleGrantedAuthority::new)
+                                        .collect(Collectors.toSet())
                         )
                 )
                 .orElseThrow(() -> new UsernameNotFoundException("Error! Customer not found!"));

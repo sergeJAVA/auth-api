@@ -19,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -47,7 +48,7 @@ public class AuthServiceImpl implements AuthService {
             userServiceApi.createUser(UserDto.builder()
                     .name(request.getUsername())
                     .password(passwordEncoder.encode(request.getPassword()))
-                    .role(RoleType.USER.value())
+                    .roles(Set.of(RoleType.USER.value()))
                     .build());
 
             response = AuthStatusResponse.builder()
