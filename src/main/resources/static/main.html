@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Галерея картинок</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f4f4f4;
+    }
+
+    .header {
+      height: 60px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: fixed;
+      width: 100%;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .profile-icon {
+      width: 40px;
+      height: 40px;
+      background: #bbb;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .profile-dropdown {
+      position: absolute;
+      top: 60px;
+      right: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      min-width: 180px;
+      z-index: 100;
+    }
+
+    .profile-dropdown button {
+      padding: 10px 16px;
+      background: none;
+      border: none;
+      text-align: left;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      width: 220px;
+      height: calc(100% - 60px);
+      background: #fff;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      padding-top: 20px;
+      z-index: 9;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .sidebar button {
+      display: block;
+      width: 100%;
+      border: none;
+      background: none;
+      padding: 15px 20px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .main {
+      margin-top: 80px;
+      padding: 20px;
+    }
+
+
+    .menu-toggle {
+      margin-bottom: 20px;
+      background: #ddd;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid #eee;
+      padding: 15px 20px;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+    }
+
+    .gallery img:hover {
+      transform: scale(1.03);
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo" onclick="reloadPage()" id="homeBtn">🏠 Главная</div>
+  <div class="profile-icon" onclick="toggleProfileMenu()"></div>
+  <div class="profile-dropdown" id="profileDropdown">
+    <button id="profileBtn">👤 Личный кабинет</button>
+    <button onclick="toggleLanguage()" id="langBtn">🌐 Сменить язык</button>
+    <button id="logoutBtn">🚪 Выйти</button>
+  </div>
+</div>
+
+<div class="sidebar" id="sidebar">
+  <div>
+    <button id="myImagesBtn">🖼 Мои картинки</button>
+    <button id="likedBtn">❤️ Понравившиеся</button>
+  </div>
+  <div class="sidebar-footer">
+    <button onclick="toggleSidebar()" id="hideMenuBtn">⬅️ Скрыть меню</button>
+  </div>
+</div>
+
+<div class="main">
+  <button class="menu-toggle" onclick="toggleSidebar()">☰ Меню</button>
+  <h1 id="mainTitle" >Добро пожаловать в галерею!</h1>
+  <div class="gallery" id="gallery">
+    <!-- Заглушки — можно добавить больше -->
+    <img src="https://picsum.photos/300/200?random=1" alt="img1" />
+    <img src="https://picsum.photos/200/300?random=2" alt="img2" />
+    <img src="https://picsum.photos/400/300?random=3" alt="img3" />
+    <img src="https://picsum.photos/300/400?random=4" alt="img4" />
+    <img src="https://picsum.photos/350/250?random=5" alt="img5" />
+    <img src="https://picsum.photos/250/350?random=6" alt="img6" />
+  </div>
+  <!-- Здесь будут картинки -->
+</div>
+
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const profileDropdown = document.getElementById('profileDropdown');
+
+  let currentLang = 'ru';
+
+  const translations = {
+    ru: {
+      home: "🏠 Главная",
+      profile: "👤 Личный кабинет",
+      language: "🌐 Сменить язык",
+      logout: "🚪 Выйти",
+      myImages: "🖼 Мои картинки",
+      liked: "❤️ Понравившиеся",
+      hideMenu: "⬅️ Скрыть меню",
+      title: "Добро пожаловать в галерею!"
+    },
+    en: {
+      home: "🏠 Home",
+      profile: "👤 Profile",
+      language: "🌐 Change language",
+      logout: "🚪 Logout",
+      myImages: "🖼 My Images",
+      liked: "❤️ Liked",
+      hideMenu: "⬅️ Hide menu",
+      title: "Welcome to the gallery!"
+    }
+  };
+
+  function toggleLanguage() {
+    currentLang = currentLang === 'ru' ? 'en' : 'ru';
+    const t = translations[currentLang];
+
+    document.getElementById('homeBtn').textContent = t.home;
+    document.getElementById('profileBtn').textContent = t.profile;
+    document.getElementById('langBtn').textContent = t.language;
+    document.getElementById('logoutBtn').textContent = t.logout;
+    document.getElementById('myImagesBtn').textContent = t.myImages;
+    document.getElementById('likedBtn').textContent = t.liked;
+    document.getElementById('hideMenuBtn').textContent = t.hideMenu;
+    document.getElementById('mainTitle').textContent = t.title;
+  }
+
+  function toggleSidebar() {
+    sidebar.classList.toggle('active');
+  }
+
+  function toggleProfileMenu() {
+    profileDropdown.style.display = profileDropdown.style.display === 'flex' ? 'none' : 'flex';
+  }
+
+  function reloadPage() {
+    window.location.reload();
+  }
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.profile-icon') && !e.target.closest('#profileDropdown')) {
+      profileDropdown.style.display = 'none';
+    }
+  });
+
+  // 🔥 Загружаем реальные картинки из API
+  async function fetchGalleryImages() {
+    const gallery = document.getElementById("gallery");
+    gallery.innerHTML = ""; // Удаляем заглушки
+
+    try {
+      const res = await fetch("http://localhost:8082/post/all-posts", {
+        credentials: "include", // важно для JWT в cookie
+      });
+
+      if (!res.ok) throw new Error("Не удалось получить список постов");
+
+      const posts = await res.json();
+
+      for (const post of posts) {
+        const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}`, {
+          credentials: "include",
+        });
+
+        if (!imageRes.ok) {
+          console.warn("Не удалось загрузить картинку:", post.title);
+          continue;
+        }
+
+        const blob = await imageRes.blob();
+        const imageURL = URL.createObjectURL(blob);
+
+        const img = document.createElement("img");
+        img.src = imageURL;
+        img.alt = post.title;
+        img.title = post.description || post.title;
+        gallery.appendChild(img);
+      }
+    } catch (err) {
+      console.error("Ошибка при загрузке изображений:", err);
+    }
+  }
+
+  // Загружаем картинки после загрузки DOM
+  document.addEventListener("DOMContentLoaded", fetchGalleryImages);
+</script>
+</body>
+</html>
