@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Галерея картинок</title>
+  <title id="title">Галерея картинок</title>
   <style>
     * {
       box-sizing: border-box;
@@ -159,7 +159,7 @@
 </div>
 
 <div class="main">
-  <button class="menu-toggle" onclick="toggleSidebar()">☰ Меню</button>
+  <button class="menu-toggle" onclick="toggleSidebar()" id="menuBtn">☰ Меню</button>
   <h1 id="mainTitle" >Добро пожаловать в галерею!</h1>
   <div class="gallery" id="gallery">
     <!-- Заглушки — можно добавить больше -->
@@ -187,6 +187,7 @@
       logout: "🚪 Выйти",
       myImages: "🖼 Мои картинки",
       liked: "❤️ Понравившиеся",
+      menu: "Меню",
       hideMenu: "⬅️ Скрыть меню",
       title: "Добро пожаловать в галерею!"
     },
@@ -197,6 +198,7 @@
       logout: "🚪 Logout",
       myImages: "🖼 My Images",
       liked: "❤️ Liked",
+      menu: "Menu",
       hideMenu: "⬅️ Hide menu",
       title: "Welcome to the gallery!"
     }
@@ -205,7 +207,9 @@
   function toggleLanguage() {
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     const t = translations[currentLang];
+    localStorage.setItem('lang', currentLang); // сохраняем язык
 
+    document.getElementById('menuBtn').textContent = t.menu;
     document.getElementById('homeBtn').textContent = t.home;
     document.getElementById('profileBtn').textContent = t.profile;
     document.getElementById('langBtn').textContent = t.language;
@@ -234,41 +238,69 @@
     }
   });
 
-  // 🔥 Загружаем реальные картинки из API
-  async function fetchGalleryImages() {
-    const gallery = document.getElementById("gallery");
-    gallery.innerHTML = ""; // Удаляем заглушки
-
+  // Выход из аккаунта
+  document.getElementById('logoutBtn').onclick = async function () {
     try {
-      const res = await fetch("http://localhost:8082/post/all-posts", {
-        credentials: "include", // важно для JWT в cookie
+      const response = await fetch('http://localhost:8081/auth/logout', {
+        method: 'POST',
+        credentials: 'include' // Обязательно, чтобы куки отправились
       });
 
-      if (!res.ok) throw new Error("Не удалось получить список постов");
+      if (response.ok) {
+        // После успешного logout перенаправляем на страницу логина
+        window.location.href = 'login.html';
+      } else {
+        alert('Не удалось выйти из аккаунта 😕');
+      }
+    } catch (error) {
+      console.error('Ошибка при выходе:', error);
+      alert('Произошла ошибка при выходе 😕');
+    }
+  };
 
-      const posts = await res.json();
+  // 🔥 Загружаем реальные картинки из API
+  async function fetchGalleryImages() {
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = ''; // очищаем старые заглушки
+
+    try {
+      // Получаем все посты
+      const postsResponse = await fetch('http://localhost:8082/post/all-posts', {
+        credentials: 'include',
+      });
+      const posts = await postsResponse.json();
 
       for (const post of posts) {
-        const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}`, {
-          credentials: "include",
-        });
+        try {
+          // Получаем картинку по title
+          const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
+            credentials: 'include',
+          });
 
-        if (!imageRes.ok) {
-          console.warn("Не удалось загрузить картинку:", post.title);
-          continue;
+          const imageBlob = await imageRes.blob();
+          const imageUrl = URL.createObjectURL(imageBlob);
+
+          // Создаем и добавляем изображение
+          const img = document.createElement('img');
+          img.src = imageUrl;
+          img.alt = post.title;
+          img.style.cursor = 'pointer';
+
+          // Переход на страницу поста по id
+          img.onclick = () => {
+            window.location.href = `post.html?id=${post.id}`;
+          };
+
+          gallery.appendChild(img);
+
+        } catch (imageError) {
+          console.warn(`Ошибка при получении изображения для поста "${post.title}"`, imageError);
         }
-
-        const blob = await imageRes.blob();
-        const imageURL = URL.createObjectURL(blob);
-
-        const img = document.createElement("img");
-        img.src = imageURL;
-        img.alt = post.title;
-        img.title = post.description || post.title;
-        gallery.appendChild(img);
       }
+
     } catch (err) {
       console.error("Ошибка при загрузке изображений:", err);
+      gallery.innerHTML = '<p>Не удалось загрузить изображения.</p>';
     }
   }
 

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Пост</title>
+    <style>
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: white;
+          padding: 10px 20px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+
+        .back-btn, .lang-toggle {
+          background: #eee;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        body {
+          font-family: sans-serif;
+          padding: 20px;
+          background: #f4f4f4;
+        }
+
+        .post-container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: #fff;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .post-img {
+          width: 100%;
+          border-radius: 10px;
+        }
+
+        .post-title {
+          font-size: 24px;
+          margin-top: 16px;
+        }
+
+        .post-author {
+          color: #666;
+          margin-bottom: 12px;
+        }
+
+        .post-desc {
+          font-size: 16px;
+          margin-bottom: 20px;
+        }
+
+        .actions {
+          display: flex;
+          gap: 20px;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .comments {
+          margin-top: 30px;
+        }
+
+        .comment {
+          border-top: 1px solid #ddd;
+          padding: 10px 0;
+        }
+
+        .comment button {
+          margin-left: 10px;
+          font-size: 12px;
+          background: #ffdddd;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+
+        .add-comment {
+          margin-top: 20px;
+          display: flex;
+          gap: 10px;
+        }
+
+        .add-comment input {
+          flex: 1;
+          padding: 8px;
+        }
+
+        .add-comment button {
+          padding: 8px 16px;
+          cursor: pointer;
+        }
+
+        .loading {
+          text-align: center;
+          font-size: 16px;
+          animation: fadeIn 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0.5; }
+          to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <button class="back-btn" id="backBtn">⬅️ Назад на главную</button>
+    <button class="lang-toggle" id="langToggle">🌐 Сменить язык</button>
+</div>
+
+<div class="post-container" id="postContainer">
+    <div class="loading" id="loadingText">Загрузка поста...</div>
+</div>
+
+<script>
+    const postContainer = document.getElementById('postContainer');
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('id');
+    const backBtn = document.getElementById('backBtn');
+    const langToggle = document.getElementById('langToggle');
+    const loadingText = document.getElementById('loadingText');
+
+    let liked = false;
+    let post = null;
+    let currentLang = localStorage.getItem('lang') || 'ru';
+
+    const translations = {
+      ru: {
+        back: "⬅️ Назад на главную",
+        lang: "🌐 Сменить язык",
+        author: "Автор",
+        comments: "💬 Комментарии",
+        placeholder: "Написать комментарий...",
+        add: "Добавить",
+        noComments: "Комментариев пока нет.",
+        delete: "Удалить",
+        errorLoading: "Ошибка при загрузке поста.",
+        notFound: "Пост не найден",
+        loading: "Загрузка поста..."
+      },
+      en: {
+        back: "⬅️ Back to Home",
+        lang: "🌐 Change language",
+        author: "Author",
+        comments: "💬 Comments",
+        placeholder: "Write a comment...",
+        add: "Add",
+        noComments: "No comments yet.",
+        delete: "Delete",
+        errorLoading: "Failed to load post.",
+        notFound: "Post not found",
+        loading: "Loading post..."
+      }
+    };
+
+    function applyTranslationsStatic() {
+      const t = translations[currentLang];
+      backBtn.textContent = t.back;
+      langToggle.textContent = t.lang;
+      if (loadingText) loadingText.textContent = t.loading;
+    }
+
+    langToggle.onclick = () => {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      localStorage.setItem('lang', currentLang);
+      applyTranslationsStatic();
+      updateUI();
+    };
+
+    backBtn.onclick = () => {
+      window.location.href = 'main.html';
+    };
+
+    async function loadPost() {
+      applyTranslationsStatic();
+      try {
+        const [postRes, imgRes] = await Promise.all([
+          fetch(`http://localhost:8082/post/${postId}`, { credentials: 'include' }),
+          new Promise(resolve => setTimeout(resolve, 100)) // 👈 Задержка 100 мс для анимации
+        ]);
+        post = await postRes.json();
+
+        const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
+          credentials: 'include'
+        });
+        const blob = await imageRes.blob();
+        const imgUrl = URL.createObjectURL(blob);
+
+        post.imageUrl = imgUrl;
+        updateUI();
+      } catch (err) {
+        console.error(err);
+        postContainer.innerHTML = `<p>${translations[currentLang].errorLoading}</p>`;
+      }
+    }
+
+    function updateUI() {
+      const t = translations[currentLang];
+      if (!post) {
+        postContainer.innerHTML = `<p>${t.notFound}</p>`;
+        return;
+      }
+
+      postContainer.innerHTML = `
+        <img src="${post.imageUrl}" class="post-img" />
+        <h1 class="post-title">${post.title}</h1>
+        <p class="post-author">${t.author}: ${post.author}</p>
+        <p class="post-desc">${post.description}</p>
+        <div class="actions">
+          <button onclick="toggleLike()" id="likeBtn">❤️ 0</button>
+          <button onclick="loadComments()">${t.comments}</button>
+        </div>
+        <div class="add-comment">
+          <input type="text" id="commentInput" placeholder="${t.placeholder}" />
+          <button onclick="sendComment()">➕ ${t.add}</button>
+        </div>
+        <div class="comments" id="comments"></div>
+      `;
+
+      loadLikeCount();
+    }
+
+    async function loadLikeCount() {
+      try {
+        const res = await fetch(`http://localhost:8083/likes/${postId}/count`, {
+          credentials: 'include'
+        });
+        const count = await res.json();
+        document.getElementById('likeBtn').textContent = `❤️ ${count}`;
+      } catch (err) {
+        console.warn('Не удалось загрузить лайки');
+      }
+    }
+
+    async function toggleLike() {
+      try {
+        await fetch(`http://localhost:8083/likes/${postId}`, {
+          method: liked ? 'DELETE' : 'POST',
+          credentials: 'include'
+        });
+        liked = !liked;
+        loadLikeCount();
+      } catch (err) {
+        console.warn('Ошибка при переключении лайка');
+      }
+    }
+
+    async function loadComments() {
+      const commentsContainer = document.getElementById('comments');
+      const t = translations[currentLang];
+      try {
+        const res = await fetch(`http://localhost:8084/comments/post/${postId}`, {
+          credentials: 'include'
+        });
+        const comments = await res.json();
+
+        if (comments.length === 0) {
+          commentsContainer.innerHTML = `<p>${t.noComments}</p>`;
+        } else {
+          commentsContainer.innerHTML = comments.map(c => `
+            <div class="comment">
+              <strong>${c.author}</strong>: ${c.text}
+              <button onclick="deleteComment(${c.id})">${t.delete}</button>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Ошибка при загрузке комментариев');
+      }
+    }
+
+    async function sendComment() {
+      const input = document.getElementById('commentInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      try {
+        await fetch(`http://localhost:8084/comments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ text, postId: parseInt(postId) })
+        });
+
+        input.value = '';
+        loadComments();
+      } catch (err) {
+        console.warn('Ошибка при отправке комментария');
+      }
+    }
+
+    async function deleteComment(commentId) {
+      try {
+        await fetch(`http://localhost:8084/comments/${commentId}/post/${postId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        loadComments();
+      } catch (err) {
+        console.warn('Ошибка при удалении комментария');
+      }
+    }
+
+    loadPost();
+</script>
+</body>
+</html>
