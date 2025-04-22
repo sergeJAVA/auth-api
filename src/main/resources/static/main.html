@@ -36,9 +36,11 @@
     .profile-icon {
       width: 40px;
       height: 40px;
-      background: #bbb;
       border-radius: 50%;
+      background-size: cover;
+      background-position: center;
       cursor: pointer;
+      background-color: #bbb;
     }
 
     .profile-dropdown {
@@ -100,7 +102,6 @@
       padding: 20px;
     }
 
-
     .menu-toggle {
       margin-bottom: 20px;
       background: #ddd;
@@ -137,12 +138,11 @@
   </style>
 </head>
 <body>
-
 <div class="header">
   <div class="logo" onclick="reloadPage()" id="homeBtn">🏠 Главная</div>
-  <div class="profile-icon" onclick="toggleProfileMenu()"></div>
+  <div class="profile-icon" id="avatarIcon" onclick="toggleProfileMenu()"></div>
   <div class="profile-dropdown" id="profileDropdown">
-    <button id="profileBtn">👤 Личный кабинет</button>
+    <button id="profileBtn" onclick="window.location.href='profile.html'">👤 Личный кабинет</button>
     <button onclick="toggleLanguage()" id="langBtn">🌐 Сменить язык</button>
     <button id="logoutBtn">🚪 Выйти</button>
   </div>
@@ -160,24 +160,16 @@
 
 <div class="main">
   <button class="menu-toggle" onclick="toggleSidebar()" id="menuBtn">☰ Меню</button>
-  <h1 id="mainTitle" >Добро пожаловать в галерею!</h1>
-  <div class="gallery" id="gallery">
-    <!-- Заглушки — можно добавить больше -->
-    <img src="https://picsum.photos/300/200?random=1" alt="img1" />
-    <img src="https://picsum.photos/200/300?random=2" alt="img2" />
-    <img src="https://picsum.photos/400/300?random=3" alt="img3" />
-    <img src="https://picsum.photos/300/400?random=4" alt="img4" />
-    <img src="https://picsum.photos/350/250?random=5" alt="img5" />
-    <img src="https://picsum.photos/250/350?random=6" alt="img6" />
-  </div>
-  <!-- Здесь будут картинки -->
+  <h1 id="mainTitle">Добро пожаловать в галерею!</h1>
+  <div class="gallery" id="gallery"></div>
 </div>
 
 <script>
   const sidebar = document.getElementById('sidebar');
   const profileDropdown = document.getElementById('profileDropdown');
+  const avatarIcon = document.getElementById('avatarIcon');
 
-  let currentLang = 'ru';
+  let currentLang = localStorage.getItem('lang') || 'ru';
 
   const translations = {
     ru: {
@@ -207,8 +199,7 @@
   function toggleLanguage() {
     currentLang = currentLang === 'ru' ? 'en' : 'ru';
     const t = translations[currentLang];
-    localStorage.setItem('lang', currentLang); // сохраняем язык
-
+    localStorage.setItem('lang', currentLang);
     document.getElementById('menuBtn').textContent = t.menu;
     document.getElementById('homeBtn').textContent = t.home;
     document.getElementById('profileBtn').textContent = t.profile;
@@ -238,16 +229,14 @@
     }
   });
 
-  // Выход из аккаунта
   document.getElementById('logoutBtn').onclick = async function () {
     try {
       const response = await fetch('http://localhost:8081/auth/logout', {
         method: 'POST',
-        credentials: 'include' // Обязательно, чтобы куки отправились
+        credentials: 'include'
       });
 
       if (response.ok) {
-        // После успешного logout перенаправляем на страницу логина
         window.location.href = 'login.html';
       } else {
         alert('Не удалось выйти из аккаунта 😕');
@@ -258,13 +247,15 @@
     }
   };
 
-  // 🔥 Загружаем реальные картинки из API
+  document.getElementById("myImagesBtn").addEventListener("click", () => {
+    window.location.href = "my-images.html";
+  });
+
   async function fetchGalleryImages() {
     const gallery = document.getElementById('gallery');
-    gallery.innerHTML = ''; // очищаем старые заглушки
+    gallery.innerHTML = '';
 
     try {
-      // Получаем все посты
       const postsResponse = await fetch('http://localhost:8082/post/all-posts', {
         credentials: 'include',
       });
@@ -272,24 +263,17 @@
 
       for (const post of posts) {
         try {
-          // Получаем картинку по title
           const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
             credentials: 'include',
           });
-
           const imageBlob = await imageRes.blob();
           const imageUrl = URL.createObjectURL(imageBlob);
 
-          // Создаем и добавляем изображение
           const img = document.createElement('img');
           img.src = imageUrl;
           img.alt = post.title;
           img.style.cursor = 'pointer';
-
-          // Переход на страницу поста по id
-          img.onclick = () => {
-            window.location.href = `post.html?id=${post.id}`;
-          };
+          img.onclick = () => window.location.href = `post.html?id=${post.id}`;
 
           gallery.appendChild(img);
 
@@ -303,11 +287,40 @@
       gallery.innerHTML = '<p>Не удалось загрузить изображения.</p>';
     }
   }
-  document.getElementById("myImagesBtn").addEventListener("click", () => {
-    window.location.href = "my-images.html";
+
+  async function loadAvatar() {
+    try {
+      const res = await fetch('http://localhost:8086/image/download/avatar', {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        avatarIcon.style.backgroundImage = `url('${url}')`;
+      }
+    } catch (e) {
+      console.warn('Не удалось загрузить аватар:', e);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    applyCurrentLanguage();
+    fetchGalleryImages();
+    loadAvatar();
   });
-  // Загружаем картинки после загрузки DOM
-  document.addEventListener("DOMContentLoaded", fetchGalleryImages);
+
+  function applyCurrentLanguage() {
+  const t = translations[currentLang];
+  document.getElementById('menuBtn').textContent = t.menu;
+  document.getElementById('homeBtn').textContent = t.home;
+  document.getElementById('profileBtn').textContent = t.profile;
+  document.getElementById('langBtn').textContent = t.language;
+  document.getElementById('logoutBtn').textContent = t.logout;
+  document.getElementById('myImagesBtn').textContent = t.myImages;
+  document.getElementById('likedBtn').textContent = t.liked;
+  document.getElementById('hideMenuBtn').textContent = t.hideMenu;
+  document.getElementById('mainTitle').textContent = t.title;
+}
 </script>
 </body>
 </html>
