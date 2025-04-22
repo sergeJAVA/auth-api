@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Images</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f3f3;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      padding: 10px 20px;
+      border-bottom: 1px solid #ddd;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    button {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .main {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 26px;
+      margin-bottom: 30px;
+    }
+
+    #uploadForm {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: 0 auto 40px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    #uploadForm.visible {
+      display: flex;
+    }
+
+    #uploadForm input {
+      margin: 8px;
+      padding: 10px;
+      width: calc(33% - 20px);
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    #uploadForm button {
+      margin-top: 10px;
+      padding: 10px 16px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    #uploadForm button:hover {
+      background: #218838;
+    }
+
+    #myImages {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .image-card {
+      background: white;
+      padding: 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 200px;
+    }
+
+    .image-card img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+
+    .image-card h3 {
+      font-size: 16px;
+      margin: 5px 0;
+    }
+
+    .image-card p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    @media (max-width: 600px) {
+      #uploadForm input {
+        width: 100%;
+        margin: 6px 0;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <button id="backBtn">⬅️ Back to Home</button>
+  <button id="uploadToggleBtn">📤 Upload Image</button>
+  <button id="langBtn">🌐 Change Language</button>
+</header>
+
+<div class="main">
+  <h1 id="titleText">Your Uploaded Images</h1>
+
+  <form class="upload-form" id="uploadForm">
+    <h3 id="uploadTitle">Upload an Image</h3>
+    <input type="file" name="file" id="fileInput" required />
+    <input type="text" name="title" id="titleInput" placeholder="Title" required />
+    <input type="text" name="description" id="descInput" placeholder="Description" required />
+    <button type="submit" id="submitBtn">Submit</button>
+  </form>
+
+  <p id="noImagesText">No uploaded images yet.</p>
+  <div id="myImages"></div>
+</div>
+
+<script>
+  const backBtn = document.getElementById("backBtn");
+  const uploadToggleBtn = document.getElementById("uploadToggleBtn");
+  const langBtn = document.getElementById("langBtn");
+  const uploadForm = document.getElementById("uploadForm");
+  const titleText = document.getElementById("titleText");
+  const noImagesText = document.getElementById("noImagesText");
+
+  let currentLang = "en";
+
+  const translations = {
+    ru: {
+      title: "Ваши загруженные картинки",
+      noImages: "Ещё нет загруженных картинок.",
+      back: "⬅️ Назад на главную",
+      upload: "📤 Загрузить изображение",
+      lang: "🌐 Сменить язык",
+      uploadTitle: "Загрузка изображения",
+      placeholderTitle: "Название",
+      placeholderDesc: "Описание",
+      submit: "Отправить"
+    },
+    en: {
+      title: "Your Uploaded Images",
+      noImages: "No uploaded images yet.",
+      back: "⬅️ Back to Home",
+      upload: "📤 Upload Image",
+      lang: "🌐 Change Language",
+      uploadTitle: "Upload an Image",
+      placeholderTitle: "Title",
+      placeholderDesc: "Description",
+      submit: "Submit"
+    }
+  };
+
+  function applyTranslations() {
+    const t = translations[currentLang];
+    backBtn.textContent = t.back;
+    uploadToggleBtn.textContent = t.upload;
+    langBtn.textContent = t.lang;
+    titleText.textContent = t.title;
+    noImagesText.textContent = t.noImages;
+    document.getElementById("uploadTitle").textContent = t.uploadTitle;
+    document.getElementById("titleInput").placeholder = t.placeholderTitle;
+    document.getElementById("descInput").placeholder = t.placeholderDesc;
+    document.getElementById("submitBtn").textContent = t.submit;
+  }
+
+  langBtn.addEventListener("click", () => {
+    currentLang = currentLang === "en" ? "ru" : "en";
+    applyTranslations();
+  });
+
+  backBtn.addEventListener("click", () => {
+    window.location.href = 'main.html';
+  });
+
+  uploadToggleBtn.addEventListener("click", () => {
+    uploadForm.classList.toggle("visible");
+  });
+
+  uploadForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const file = document.getElementById("fileInput").files[0];
+    const title = document.getElementById("titleInput").value;
+    const description = document.getElementById("descInput").value;
+
+    if (!file || !title || !description) {
+      alert(currentLang === "ru" ? "Пожалуйста, заполните все поля" : "Please fill out all fields.");
+      return;
+    }
+
+    const post = JSON.stringify({ title, description });
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("post", post);
+
+    try {
+      const res = await fetch("http://localhost:8082/post/create", {
+        method: "POST",
+        credentials: "include",
+        body: formData
+      });
+
+      if (!res.ok) throw new Error("Ошибка при создании поста, попробуйте еще!");
+
+      alert(currentLang === "ru" ? "Пост создан!" : "Post created!");
+      uploadForm.reset();
+      uploadForm.classList.remove("visible");
+      document.getElementById("myImages").innerHTML = "";
+      loadMyImages();
+    } catch (err) {
+      alert((currentLang === "ru" ? "Ошибка: " : "Error: ") + err.message);
+    }
+  });
+
+
+
+  async function loadMyImages() {
+    try {
+      const [postsRes, userRes] = await Promise.all([
+        fetch("http://localhost:8082/post/all-posts", { credentials: 'include' }),
+        fetch("http://localhost:8080/user/info", { credentials: 'include' })
+      ]);
+
+      const posts = await postsRes.json();
+      const user = await userRes.json();
+
+      const myPosts = posts.filter(p => p.author === user.name);
+      const imagesContainer = document.getElementById("myImages");
+
+      if (myPosts.length === 0) {
+        noImagesText.style.display = "block";
+      } else {
+        noImagesText.style.display = "none";
+        for (const post of myPosts) {
+          try {
+            const imageBlob = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
+              credentials: 'include'
+            }).then(res => res.blob());
+
+            const imgUrl = URL.createObjectURL(imageBlob);
+            const card = document.createElement("div");
+            card.className = "image-card";
+            card.innerHTML = `<img src="${imgUrl}" alt="${post.title}" onclick="window.location.href='post.html?id=${post.id}'" />`;
+            imagesContainer.appendChild(card);
+          } catch (err) {
+            console.warn("Ошибка при загрузке изображения:", err);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Ошибка при загрузке данных:", err);
+      noImagesText.style.display = "block";
+      noImagesText.textContent = "Ошибка при загрузке изображений.";
+    }
+  }
+
+  applyTranslations();
+  loadMyImages();
+</script>
+</body>
+</html>

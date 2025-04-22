@@ -303,7 +303,9 @@
       gallery.innerHTML = '<p>Не удалось загрузить изображения.</p>';
     }
   }
-
+  document.getElementById("myImagesBtn").addEventListener("click", () => {
+    window.location.href = "my-images.html";
+  });
   // Загружаем картинки после загрузки DOM
   document.addEventListener("DOMContentLoaded", fetchGalleryImages);
 </script>
