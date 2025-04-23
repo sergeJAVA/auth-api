@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Понравившиеся</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          font-family: sans-serif;
+          background: #f4f4f4;
+        }
+
+        .header {
+          height: 60px;
+          background: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 20px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+          position: fixed;
+          width: 100%;
+          top: 0;
+          z-index: 10;
+        }
+
+        .logo { font-weight: bold; cursor: pointer; }
+        .profile-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background-size: cover;
+          background-position: center;
+          cursor: pointer;
+          background-color: #bbb;
+        }
+
+        .profile-dropdown {
+          position: absolute;
+          top: 60px;
+          right: 20px;
+          background: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          display: none;
+          flex-direction: column;
+          min-width: 180px;
+          z-index: 100;
+        }
+
+        .profile-dropdown button {
+          padding: 10px 16px;
+          background: none;
+          border: none;
+          text-align: left;
+          width: 100%;
+          cursor: pointer;
+        }
+
+        .gallery {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
+          margin-top: 80px;
+          padding: 20px;
+        }
+
+        .gallery img {
+          width: 100%;
+          height: auto;
+          border-radius: 8px;
+          object-fit: cover;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+          transition: transform 0.2s ease;
+          cursor: pointer;
+        }
+
+        .gallery img:hover {
+          transform: scale(1.03);
+        }
+
+        .controls {
+          margin-top: 80px;
+          padding: 0 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        button {
+          background: #ddd;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div class="logo" id="homeBtn">🏠 Главная</div>
+    <div class="profile-icon" id="avatarIcon" onclick="toggleProfileMenu()"></div>
+    <div class="profile-dropdown" id="profileDropdown">
+        <button id="profileBtn" onclick="window.location.href='profile.html'">👤 Личный кабинет</button>
+        <button onclick="toggleLanguage()" id="langBtn">🌐 Сменить язык</button>
+        <button id="logoutBtn">🚪 Выйти</button>
+    </div>
+</div>
+
+<div class="controls">
+    <h1 id="mainTitle">Понравившиеся посты</h1>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<script>
+    let currentLang = localStorage.getItem('lang') || 'ru';
+
+    const translations = {
+      ru: {
+        home: "🏠 Главная",
+        profile: "👤 Личный кабинет",
+        language: "🌐 Сменить язык",
+        logout: "🚪 Выйти",
+        title: "Понравившиеся посты"
+      },
+      en: {
+        home: "🏠 Home",
+        profile: "👤 Profile",
+        language: "🌐 Change language",
+        logout: "🚪 Logout",
+        title: "Liked posts"
+      }
+    };
+
+    function applyLanguage() {
+      const t = translations[currentLang];
+      document.getElementById('homeBtn').textContent = t.home;
+      document.getElementById('langBtn').textContent = t.language;
+      document.getElementById('mainTitle').textContent = t.title;
+      document.getElementById('profileBtn').textContent = t.profile;
+      document.getElementById('logoutBtn').textContent = t.logout;
+    }
+
+    function toggleLanguage() {
+      currentLang = currentLang === 'ru' ? 'en' : 'ru';
+      localStorage.setItem('lang', currentLang);
+      applyLanguage();
+    }
+
+    document.getElementById('homeBtn').onclick = () => {
+      window.location.href = 'main.html';
+    };
+
+    async function loadAvatar() {
+      try {
+        const res = await fetch('http://localhost:8086/image/download/avatar', { credentials: 'include' });
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          document.getElementById('avatarIcon').style.backgroundImage = `url('${url}')`;
+        }
+      } catch (e) {
+        console.warn('Не удалось загрузить аватар:', e);
+      }
+    }
+
+    function toggleProfileMenu() {
+      const menu = document.getElementById('profileDropdown');
+      menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.profile-icon') && !e.target.closest('#profileDropdown')) {
+        document.getElementById('profileDropdown').style.display = 'none';
+      }
+    });
+
+    document.getElementById('logoutBtn').onclick = async function () {
+      try {
+        const response = await fetch('http://localhost:8081/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          window.location.href = 'login.html';
+        } else {
+          alert('Не удалось выйти из аккаунта 😕');
+        }
+      } catch (error) {
+        console.error('Ошибка при выходе:', error);
+        alert('Произошла ошибка при выходе 😕');
+      }
+    };
+
+    async function fetchLikedImages() {
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
+
+      try {
+        const userIdRes = await fetch('http://localhost:8080/user/info/id', { credentials: 'include' });
+        const userIdText = await userIdRes.text();
+        const userId = parseInt(userIdText, 10);
+
+        const likedRes = await fetch(`http://localhost:8083/likes/users/${userId}/posts`, { credentials: 'include' });
+        const likedIds = await likedRes.json();
+
+        const postsRes = await fetch('http://localhost:8082/post/all-posts', { credentials: 'include' });
+        const posts = await postsRes.json();
+
+        for (const post of posts) {
+          if (!likedIds.includes(post.id)) continue;
+
+          try {
+            const imgRes = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
+              credentials: 'include'
+            });
+            const blob = await imgRes.blob();
+            const imgUrl = URL.createObjectURL(blob);
+
+            const img = document.createElement('img');
+            img.src = imgUrl;
+            img.alt = post.title;
+            img.onclick = () => window.location.href = `post.html?id=${post.id}`;
+            gallery.appendChild(img);
+
+          } catch (imgErr) {
+            console.warn('Ошибка загрузки изображения:', imgErr);
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка при получении данных:', err);
+        gallery.innerHTML = '<p>Не удалось загрузить понравившиеся посты.</p>';
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      applyLanguage();
+      fetchLikedImages();
+      loadAvatar();
+    });
+</script>
+</body>
+</html>

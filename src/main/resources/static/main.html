@@ -251,6 +251,10 @@
     window.location.href = "my-images.html";
   });
 
+  document.getElementById("likedBtn").addEventListener("click", () => {
+    window.location.href = "liked.html";
+  });
+
   async function fetchGalleryImages() {
     const gallery = document.getElementById('gallery');
     gallery.innerHTML = '';

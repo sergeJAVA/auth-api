@@ -134,6 +134,7 @@
 
     let liked = false;
     let post = null;
+    let currentUser = null;
     let currentLang = localStorage.getItem('lang') || 'ru';
 
     const translations = {
@@ -148,7 +149,8 @@
         delete: "Удалить",
         errorLoading: "Ошибка при загрузке поста.",
         notFound: "Пост не найден",
-        loading: "Загрузка поста..."
+        loading: "Загрузка поста...",
+        deletePost: "Удалить пост?"
       },
       en: {
         back: "⬅️ Back to Home",
@@ -161,7 +163,8 @@
         delete: "Delete",
         errorLoading: "Failed to load post.",
         notFound: "Post not found",
-        loading: "Loading post..."
+        loading: "Loading post...",
+        deletePost: "Delete this post?"
       }
     };
 
@@ -183,13 +186,29 @@
       window.location.href = 'main.html';
     };
 
+    async function getCurrentUser() {
+      try {
+        const res = await fetch('http://localhost:8080/user/info', {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          currentUser = await res.json();
+        }
+      } catch (err) {
+        console.warn('Ошибка при получении пользователя');
+      }
+    }
+
     async function loadPost() {
       applyTranslationsStatic();
+      await getCurrentUser();
+
       try {
-        const [postRes, imgRes] = await Promise.all([
+        const [postRes] = await Promise.all([
           fetch(`http://localhost:8082/post/${postId}`, { credentials: 'include' }),
-          new Promise(resolve => setTimeout(resolve, 100)) // 👈 Задержка 100 мс для анимации
+          new Promise(resolve => setTimeout(resolve, 100))
         ]);
+
         post = await postRes.json();
 
         const imageRes = await fetch(`http://localhost:8086/image/download/${post.title}/${post.id}`, {
@@ -221,6 +240,11 @@
         <div class="actions">
           <button onclick="toggleLike()" id="likeBtn">❤️ 0</button>
           <button onclick="loadComments()">${t.comments}</button>
+          ${
+            currentUser && (currentUser.name === post.author || currentUser.roles.includes('admin'))
+              ? `<button onclick="deletePost()" style="background:#ffbbbb; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">🗑️ ${t.delete}</button>`
+              : ''
+          }
         </div>
         <div class="add-comment">
           <input type="text" id="commentInput" placeholder="${t.placeholder}" />
@@ -310,6 +334,26 @@
         loadComments();
       } catch (err) {
         console.warn('Ошибка при удалении комментария');
+      }
+    }
+
+    async function deletePost() {
+      if (!confirm(translations[currentLang].deletePost)) return;
+
+      try {
+        const res = await fetch(`http://localhost:8082/post/${postId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          alert(currentLang === 'ru' ? 'Пост удалён' : 'Post deleted');
+          window.location.href = 'main.html';
+        } else {
+          alert(currentLang === 'ru' ? 'Не удалось удалить пост' : 'Failed to delete post');
+        }
+      } catch (err) {
+        console.error('Ошибка при удалении поста');
       }
     }
 
