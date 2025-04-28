@@ -219,6 +219,7 @@
 
         post.imageUrl = imgUrl;
         updateUI();
+        await fetchLikedStatus();
       } catch (err) {
         console.error(err);
         postContainer.innerHTML = `<p>${translations[currentLang].errorLoading}</p>`;
@@ -255,6 +256,54 @@
 
       loadLikeCount();
     }
+    async function getUserIdByAuthor(authorName) {
+      try {
+        const res = await fetch(`http://localhost:8080/user/find/${authorName}`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const user = await res.json();
+          return user.id; // Возвращаем userId
+        }
+      } catch (err) {
+        console.warn('Ошибка при получении userId');
+      }
+      return null; // Если не удалось получить userId
+    }
+
+    async function sendNotification(data, authorName, content) {
+      // Получаем userId владельца поста (а не того, кто совершил действие)
+      const userId = await getUserIdByAuthor(authorName);
+
+
+
+      if (!userId) {
+        console.warn('Не удалось найти userId для отправки уведомления');
+        return;
+      }
+
+      if (currentUser.name === authorName) {
+        return;
+      }
+
+      // Отправляем уведомление
+      try {
+        await fetch('http://localhost:8087/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            ...data, // Включаем остальные данные
+            userId: userId, // Добавляем полученный userId владельца поста
+            content: content, // Добавляем текст уведомления
+          }),
+        });
+      } catch (err) {
+        console.warn('Ошибка при отправке уведомления', err);
+      }
+    }
 
     async function loadLikeCount() {
       try {
@@ -268,16 +317,53 @@
       }
     }
 
-    async function toggleLike() {
+    async function fetchLikedStatus() {
       try {
-        await fetch(`http://localhost:8083/likes/${postId}`, {
-          method: liked ? 'DELETE' : 'POST',
+        const res = await fetch(`http://localhost:8083/likes/${postId}/user/liked`, {
           credentials: 'include'
         });
-        liked = !liked;
-        loadLikeCount();
+        if (res.ok) {
+          liked = await res.json();
+          // при желании можешь подкрасить кнопку:
+          document.getElementById('likeBtn').classList.toggle('liked', liked);
+        }
       } catch (err) {
-        console.warn('Ошибка при переключении лайка');
+        console.warn('Не удалось проверить, лайкнул ли текущий пользователь', err);
+      }
+    }
+
+    async function toggleLike() {
+      try {
+        // решаем, что делаем: ставим или снимаем
+        const isAdding = !liked;
+        const method = isAdding ? 'POST' : 'DELETE';
+
+        const res = await fetch(`http://localhost:8083/likes/${postId}`, {
+          method,
+          credentials: 'include'
+        });
+        if (!res.ok) {
+          console.warn('Лайк не изменился, статус', res.status);
+          return;
+        }
+
+        // обновляем локально и на UI
+        liked = isAdding;
+        loadLikeCount();
+        document.getElementById('likeBtn').classList.toggle('liked', liked);
+
+        // отправляем уведомление только если лайк поставлен
+        if (isAdding) {
+          const notificationData = {
+            type: 'LIKE',
+            postId: postId,
+            userId: currentUser.id
+          };
+          const content = `${currentUser.name} поставил лайк под вашим постом ${postId}`;
+          sendNotification(notificationData, post.author, content);
+        }
+      } catch (err) {
+        console.warn('Ошибка при переключении лайка', err);
       }
     }
 
@@ -308,9 +394,11 @@
     async function sendComment() {
       const input = document.getElementById('commentInput');
       const text = input.value.trim();
+      const username = await getCurrentUser();
       if (!text) return;
 
       try {
+        // Отправка комментария
         await fetch(`http://localhost:8084/comments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -320,8 +408,23 @@
 
         input.value = '';
         loadComments();
+
+        // Отправляем уведомление
+        const notificationData = {
+          type: 'COMMENT',  // Тип уведомления - COMMENT
+          postId: postId,
+          userId: currentUser ? currentUser.id : null, // ID текущего пользователя
+          commentText: text, // Текст комментария
+        };
+
+        // Составляем контент для уведомления о комментарии
+        const content = `${currentUser ? currentUser.name : 'Неизвестный'} написал комментарий под вашим постом ${postId}`;
+
+        // Получаем имя автора поста
+        sendNotification(notificationData, post.author, content);
+
       } catch (err) {
-        console.warn('Ошибка при отправке комментария');
+        console.warn('Ошибка при отправке комментария', err);
       }
     }
 

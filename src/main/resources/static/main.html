@@ -135,11 +135,53 @@
     .gallery img:hover {
       transform: scale(1.03);
     }
+
+    .notification-icon {
+      font-size: 24px;
+      cursor: pointer;
+      margin-right: 20px;
+      position: relative;
+    }
+
+    .notification-dropdown {
+      position: absolute;
+      top: 60px;
+      right: 80px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      display: none;
+      flex-direction: column;
+      min-width: 260px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 100;
+      padding: 10px;
+    }
+
+    .notification-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+
+    .notification-icon-small {
+      margin-right: 8px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
 <div class="header">
   <div class="logo" onclick="reloadPage()" id="homeBtn">🏠 Главная</div>
+  <div class="notification-icon" id="notifIcon" onclick="toggleNotifications()">🔔</div>
+  <div class="notification-dropdown" id="notifDropdown"></div>
   <div class="profile-icon" id="avatarIcon" onclick="toggleProfileMenu()"></div>
   <div class="profile-dropdown" id="profileDropdown">
     <button id="profileBtn" onclick="window.location.href='profile.html'">👤 Личный кабинет</button>
@@ -222,6 +264,90 @@
   function reloadPage() {
     window.location.reload();
   }
+
+  const notifDropdown = document.getElementById('notifDropdown');
+
+  function toggleNotifications() {
+    notifDropdown.style.display = notifDropdown.style.display === 'flex' ? 'none' : 'flex';
+    if (notifDropdown.style.display === 'flex') {
+      loadNotifications();
+    }
+  }
+
+  async function loadNotifications() {
+    notifDropdown.innerHTML = '<div>Загрузка...</div>';
+    try {
+      const res = await fetch('http://localhost:8087/notifications/user/notifications', {
+        credentials: 'include',
+      });
+      const notifications = await res.json();
+
+      if (notifications.length === 0) {
+        notifDropdown.innerHTML = '<div class="notification-item">Нет уведомлений 📭</div>';
+        return;
+      }
+
+      notifDropdown.innerHTML = '';
+      for (const notif of notifications) {
+        const div = document.createElement('div');
+        div.className = 'notification-item';
+        div.id = `notif-${notif.id}`;
+
+        let icon = notif.type.toLowerCase() === 'comment' ? '💬'
+                 : notif.type.toLowerCase() === 'like'    ? '❤️'
+                 : '🔔';
+
+        // Заменяем первое вхождение числа notif.postId на ссылку
+        const linked = notif.content.replace(
+          notif.postId,
+          `&nbsp;<a href="post.html?id=${notif.postId}" style="text-decoration:none; color:inherit;">${notif.postId}</a>`
+        );
+
+        div.innerHTML = `<span class="notification-icon-small">${icon}</span> ${linked}`;
+
+        // кнопка удаления
+        const deleteBtn = document.createElement('span');
+        deleteBtn.textContent = '🗑️';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.style.marginLeft = '8px';
+        deleteBtn.onclick = () => deleteNotification(notif.id);
+        div.appendChild(deleteBtn);
+
+        notifDropdown.appendChild(div);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке уведомлений:', error);
+      notifDropdown.innerHTML = '<div class="notification-item">Ошибка загрузки 😕</div>';
+    }
+  }
+  async function deleteNotification(notificationId) {
+    try {
+      // Отправляем запрос на сервер для удаления уведомления
+      const response = await fetch(`http://localhost:8087/notifications/delete/${notificationId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Удаляем уведомление из списка на странице
+        const notifElement = document.getElementById(`notif-${notificationId}`);
+        if (notifElement) {
+          notifElement.remove();
+        }
+      } else {
+        console.warn('Не удалось удалить уведомление');
+      }
+    } catch (error) {
+      console.error('Ошибка при удалении уведомления:', error);
+    }
+  }
+
+  // Скрывать уведомления при клике вне иконки
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.notification-icon') && !e.target.closest('#notifDropdown')) {
+      notifDropdown.style.display = 'none';
+    }
+  });
 
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.profile-icon') && !e.target.closest('#profileDropdown')) {
